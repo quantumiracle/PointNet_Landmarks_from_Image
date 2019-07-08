@@ -50,9 +50,10 @@ for i in range(total):
     target_pos=np.random.uniform(200,800, 2)  # random set target position
     env.set_target_position(target_pos)
     s_=s_[0]
-    s=s_
     list_s.append(s)
     list_s_.append(s_)
+    s=s_
+
     if (i+1)%save_interval==0 and i>0:
         pickle.dump(list_s, f1)
         pickle.dump(list_s_, f2)

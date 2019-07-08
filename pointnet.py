@@ -49,6 +49,7 @@ class PointNet(nn.Module):
         self.IMG_CHANNEL=img_channel
         self.STD = gaussian_std
 
+        ''' generate landmarks from target images '''
         self.landmark_detector=nn.Sequential(
             nn.Conv2d(img_channel, self.CONV_NUM_FEATURE_MAP, self.CONV_KERNEL_SIZE, self.CONV_STRIDE, self.CONV_PADDING, bias=False),  # in_channels, out_channels, kernel_size, stride=1, padding=0
             nn.LeakyReLU(0.2, inplace=True),
@@ -61,7 +62,7 @@ class PointNet(nn.Module):
             nn.Conv2d(self.CONV_NUM_FEATURE_MAP*4, num_landmarks, 1, 1, 0, bias=False)
             )
 
-        ''' extract features (same shape as heatmap) in target images '''
+        ''' extract features (same shape as heatmap) in original images '''
         self.feature_extractor=nn.Sequential(
             nn.Conv2d(img_channel, self.CONV_NUM_FEATURE_MAP, self.CONV_KERNEL_SIZE, self.CONV_STRIDE, self.CONV_PADDING, bias=False),  # in_channels, out_channels, kernel_size, stride=1, padding=0
             nn.LeakyReLU(0.2, inplace=True),
@@ -105,14 +106,14 @@ class PointNet(nn.Module):
         self.xy=np.concatenate((xx[:, :,np.newaxis],yy[:, :,np.newaxis]), axis=2)
 
     def forward(self, x, x_):
-        # get landmarks -> gaussian heatmaps from source images
-        landmarks_col, landmarks_row = self.generate_landmarks(x)
+        # get landmarks -> gaussian heatmaps from target images
+        landmarks_col, landmarks_row = self.generate_landmarks(x_)
         gaussian_heatmaps=self.gaussian_heatmap(landmarks_col, landmarks_row)  # (256, 5, 16, 16)
 
-        # extract features from target images
-        target_features=self.feature_extractor(x_)  # (256, 128, 16, 16)
+        # extract features from source images
+        target_features=self.feature_extractor(x)  # (256, 128, 16, 16)
 
-        # generate new target images with gaussian heatmaps from source images and features from target images
+        # generate new target images with gaussian heatmaps from target images and features from original images
         generation_input=torch.cat((target_features, gaussian_heatmaps), dim=1)  # concatenate the features and gaussian heatmaps along the channel dimension, shape: (256, 133, 16, 16)
         generated_images = self.regressor(generation_input)  # (256, 3, 128, 128)
 
@@ -258,18 +259,31 @@ if args.test:
     source_samples=pickle.load(f1) # image value 0-1, size:(128,128,3)
     target_samples=pickle.load(f2)
 
-    idx=10
+    idx=18
+    my_dpi=96  # tested at: https://www.infobyip.com/detectmonitordpi.php
     source_sample=np.transpose(source_samples[idx], (2,0,1))
     target_sample=np.transpose(target_samples[idx], (2,0,1))
 
+    plt.figure(figsize=(128/my_dpi, 128/my_dpi), dpi=my_dpi) # plot image with exact pixels
+    plt.imshow(target_samples[idx])
+    plt.savefig('./pointnet_data/'+'target.png')
+    plt.imshow(source_samples[idx])
+    plt.savefig('./pointnet_data/'+'original.png')
     source_sample=torch.Tensor(source_sample).unsqueeze(0).to(device)
     target_sample=torch.Tensor(target_sample).unsqueeze(0).to(device)
 
     xs, ys=pointnet.generate_landmarks(source_sample)  # generate landmarks from source image
+    xs=xs.detach().cpu().numpy()
+    ys=ys.detach().cpu().numpy()
+    print(xs, ys)
+    plt.scatter(xs, ys, c='r', s=40)  # plot landmarks on original image
+    plt.savefig('./pointnet_data/'+'landmark.png')
 
     generated_image=pointnet(source_sample, target_sample)  # generate image from source image to mimic the target image
-    
-
+    generated_image = np.transpose(generated_image.detach().cpu().numpy()[0], (1,2,0)) # (128, 128, 3)
+    plt.imshow(generated_image)
+    plt.savefig('./pointnet_data/'+'generated.png')
+    # plt.show()
 
         
 
