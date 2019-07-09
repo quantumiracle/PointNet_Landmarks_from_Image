@@ -76,7 +76,7 @@ class Transporter(nn.Module):
 
         ''' image generation '''
         self.regressor= nn.Sequential(
-            nn.ConvTranspose2d( self.CONV_NUM_FEATURE_MAP * 4 + num_landmarks, self.CONV_NUM_FEATURE_MAP * 2, self.CONV_KERNEL_SIZE, self.CONV_STRIDE, self.CONV_PADDING, bias=False),
+            nn.ConvTranspose2d( self.CONV_NUM_FEATURE_MAP * 4, self.CONV_NUM_FEATURE_MAP * 2, self.CONV_KERNEL_SIZE, self.CONV_STRIDE, self.CONV_PADDING, bias=False),
             nn.BatchNorm2d(self.CONV_NUM_FEATURE_MAP * 2),
             nn.ReLU(True),
             nn.ConvTranspose2d( self.CONV_NUM_FEATURE_MAP * 2, self.CONV_NUM_FEATURE_MAP, self.CONV_KERNEL_SIZE, self.CONV_STRIDE, self.CONV_PADDING, bias=False),
@@ -128,7 +128,7 @@ class Transporter(nn.Module):
         landmarks_col, landmarks_row = self.generate_landmarks(x)
         gaussian_heatmaps=self.gaussian_heatmap(landmarks_col, landmarks_row)  # (256, 5, 16, 16)
 
-        gaussian_heatmaps=torch.sum(gaussian_heatmaps, dim=1)  # sum the heatmaps of K landmarks on one heatmap
+        gaussian_heatmaps=torch.sum(gaussian_heatmaps, dim=1, keepdim=True)  # sum the heatmaps of K landmarks on one heatmap
 
         return features, gaussian_heatmaps # (256, 1, 16, 16)
 
@@ -242,7 +242,7 @@ num_epochs=1000
 batch_size=256 # size of training batch
 
 if args.train:
-    pointnet.load_model()  # if retrain
+    # pointnet.load_model()  # if retrain
     f1 =gzip.open('./pointnet_data/s.gzip','rb')
     f2 =gzip.open('./pointnet_data/s_.gzip','rb')
     source_batch=[]

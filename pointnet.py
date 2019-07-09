@@ -213,7 +213,7 @@ num_epochs=1000
 batch_size=256 # size of training batch
 
 if args.train:
-    pointnet.load_model()  # if retrain
+    # pointnet.load_model()  # if retrain
     f1 =gzip.open('./pointnet_data/s.gzip','rb')
     f2 =gzip.open('./pointnet_data/s_.gzip','rb')
     source_batch=[]
