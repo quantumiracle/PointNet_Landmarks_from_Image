@@ -326,7 +326,7 @@ transporter = Transporter(img_dim, img_channel, num_landmarks, heatmap_size)
 ENV = ['Pendulum', 'Reacher'][1]
 if ENV == 'Reacher':
     env=Reacher(screen_size=SCREEN_SIZE, num_joints=NUM_JOINTS, link_lengths = LINK_LENGTH, \
-    ini_joint_angles=INI_JOING_ANGLES, target_pos = [369,430], render=True)
+    ini_joint_angles=INI_JOING_ANGLES, target_pos = [369,730], render=True)  # [369,430]
     action_dim = env.num_actions
     state_dim  = env.num_observations
 elif ENV == 'Pendulum':
@@ -438,6 +438,8 @@ for epi in range(max_episodes):
         
         if done:
             break
-        
-    rewards.append(episode_reward)
+    if epi==0:
+        rewards.append(episode_reward)
+    else:
+        rewards.append(rewards[-1]*0.9+0.1*episode_reward)  # running mean
     predict_qs.append(predict_q)
