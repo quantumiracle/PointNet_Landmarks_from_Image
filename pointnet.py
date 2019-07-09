@@ -213,7 +213,7 @@ num_epochs=1000
 batch_size=256 # size of training batch
 
 if args.train:
-    # pointnet.load_model()  # if retrain
+    pointnet.load_model()  # if retrain
     f1 =gzip.open('./pointnet_data/s.gzip','rb')
     f2 =gzip.open('./pointnet_data/s_.gzip','rb')
     source_batch=[]
@@ -230,7 +230,6 @@ if args.train:
             target_batch.append(target_sample)
     source_batch=np.array(source_batch)  # (batch_size, img_channel, img_dim, img_dim )
 
-    # y=pointnet(torch.Tensor(source_batch[:batch_size]), torch.Tensor(target_batch[:batch_size]))
     ''' train the model '''
     for epoch in range(num_epochs):
         train_loss=0.
@@ -287,7 +286,7 @@ if args.test:
     ys=ys*img_dim/heatmap_size
 
     print(xs, ys)
-    plt.scatter(xs, ys, c='r', s=40)  # plot landmarks on original image
+    plt.scatter(xs, ys, marker="^", c='r', s=6)  # plot landmarks on original image
     plt.savefig('./pointnet_data/'+'landmark.png')
 
     generated_image=pointnet(source_sample, target_sample)  # generate image from source image to mimic the target image

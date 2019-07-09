@@ -235,14 +235,14 @@ img_dim=128
 img_channel=3
 num_landmarks=5
 heatmap_size=16  # width and height of heatmap
-pointnet = Transporter(img_dim, img_channel, num_landmarks, heatmap_size)
+transporter = Transporter(img_dim, img_channel, num_landmarks, heatmap_size)
 total_data=1024
 batch_data=256  # size of pickle batch
 num_epochs=1000
 batch_size=256 # size of training batch
 
 if args.train:
-    # pointnet.load_model()  # if retrain
+    transporter.load_model()  # if retrain
     f1 =gzip.open('./pointnet_data/s.gzip','rb')
     f2 =gzip.open('./pointnet_data/s_.gzip','rb')
     source_batch=[]
@@ -259,7 +259,6 @@ if args.train:
             target_batch.append(target_sample)
     source_batch=np.array(source_batch)  # (batch_size, img_channel, img_dim, img_dim )
 
-    # y=pointnet(torch.Tensor(source_batch[:batch_size]), torch.Tensor(target_batch[:batch_size]))
     ''' train the model '''
     for epoch in range(num_epochs):
         train_loss=0.
@@ -268,22 +267,22 @@ if args.train:
             train_target_batch=target_batch[i*batch_size: (i+1)*batch_size]
             train_source_batch=torch.Tensor(train_source_batch).to(device)
             train_target_batch=torch.Tensor(train_target_batch).to(device)
-            loss = pointnet.update(train_source_batch, train_target_batch)
+            loss = transporter.update(train_source_batch, train_target_batch)
             train_loss+=loss
 
         print('Epoch: {}  | Loss: {:.4f}'.format(epoch, loss))
         
         loss_list.append(train_loss)
         if epoch%10:
-            pointnet.save_model()
+            transporter.save_model()
             plot(loss_list)
     
-    pointnet.save_model()        
+    transporter.save_model()        
     f1.close()
     f2.close()
 
 if args.test:
-    pointnet.load_model()
+    transporter.load_model()
     f1 =gzip.open('./pointnet_data/s.gzip','rb')
     f2 =gzip.open('./pointnet_data/s_.gzip','rb')
     source_samples=pickle.load(f1) # image value 0-1, size:(128,128,3)
@@ -302,7 +301,7 @@ if args.test:
     source_sample=torch.Tensor(source_sample).unsqueeze(0).to(device)
     target_sample=torch.Tensor(target_sample).unsqueeze(0).to(device)
 
-    xs, ys=pointnet.generate_landmarks(source_sample)  # generate landmarks from source image
+    xs, ys=transporter.generate_landmarks(source_sample)  # generate landmarks from source image
     xs=xs.detach().cpu().numpy()
     ys=ys.detach().cpu().numpy()
 
@@ -311,10 +310,10 @@ if args.test:
     ys=ys*img_dim/heatmap_size
 
     print(xs, ys)
-    plt.scatter(xs, ys, c='r', s=40)  # plot landmarks on original image
+    plt.scatter(xs, ys, marker="^", c='r', s=6)  # plot landmarks on original image
     plt.savefig('./transporter_model/'+'landmark.png')
 
-    generated_image=pointnet(source_sample, target_sample)  # generate image from source image to mimic the target image
+    generated_image=transporter(source_sample, target_sample)  # generate image from source image to mimic the target image
     generated_image = np.transpose(generated_image.detach().cpu().numpy()[0], (1,2,0)) # (128, 128, 3)
     plt.imshow(generated_image)
     plt.savefig('./transporter_model/'+'generated.png')
