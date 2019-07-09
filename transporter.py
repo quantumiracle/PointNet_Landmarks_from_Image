@@ -26,7 +26,7 @@ parser.add_argument('--test', dest='test', action='store_true', default=True)
 
 args = parser.parse_args()
 
-save_path='./pointnet_model/'
+save_path='./transporter_model/'
 
 GPU = True
 device_idx = 0
@@ -37,9 +37,9 @@ else:
 print(device)
 
 
-class PointNet(nn.Module):
+class Transporter(nn.Module):
     def __init__(self, img_dim, img_channel, num_landmarks, heatmap_size, gaussian_std=2., learning_rate= 6e-4, weight_decay=5e-4):  # square image, width=height=img_dim
-        super(PointNet, self).__init__()
+        super(Transporter, self).__init__()
         self.CONV_NUM_FEATURE_MAP=32
         self.CONV_KERNEL_SIZE=4
         self.CONV_STRIDE=2
@@ -106,18 +106,47 @@ class PointNet(nn.Module):
         self.xy=np.concatenate((xx[:, :,np.newaxis],yy[:, :,np.newaxis]), axis=2)
 
     def forward(self, x, x_):
-        # get landmarks -> gaussian heatmaps from target images
-        landmarks_col, landmarks_row = self.generate_landmarks(x_)
+        ''' phase 1: hidden codes extraction '''
+        source_feature, source_heatmaps=self.extraction(x)
+        target_feature, target_heatmaps=self.extraction(x_)
+
+        ''' phase 2: transport '''
+        # no gradients for source part according to original images, so .detach()
+        generation_input=self.transport(source_feature.detach(), target_feature, source_heatmaps.detach(), target_heatmaps)
+
+        ''' phase 3: image reconstruction '''
+        generated_images = self.regressor(generation_input)  
+
+        return generated_images  # (256, 3, 128, 128)
+
+    def extraction(self, x):
+        '''
+        extract the features with the feature_extractor and heatmaps with PNet
+        '''
+        features=self.feature_extractor(x)  # (256, 128, 16, 16)
+
+        landmarks_col, landmarks_row = self.generate_landmarks(x)
         gaussian_heatmaps=self.gaussian_heatmap(landmarks_col, landmarks_row)  # (256, 5, 16, 16)
 
-        # extract features from source images
-        target_features=self.feature_extractor(x)  # (256, 128, 16, 16)
+        gaussian_heatmaps=torch.sum(gaussian_heatmaps, dim=1)  # sum the heatmaps of K landmarks on one heatmap
 
-        # generate new target images with gaussian heatmaps from target images and features from original images
-        generation_input=torch.cat((target_features, gaussian_heatmaps), dim=1)  # concatenate the features and gaussian heatmaps along the channel dimension, shape: (256, 133, 16, 16)
-        generated_images = self.regressor(generation_input)  # (256, 3, 128, 128)
+        return features, gaussian_heatmaps # (256, 1, 16, 16)
 
-        return generated_images
+
+    def transport(self, f_s, f_t, h_s, h_t):
+        ''' 
+        transport the features and heatmaps
+        :f_s: features of source images
+        :f_t: features of target images
+        :h_s: heatmaps of source images
+        :h_t: heatmaps of target images
+        :return: inputs for generation with regressor
+        '''
+        generation_input=(1-h_s)*(1-h_t)*f_s+h_t*f_t  # element-wise product
+
+        return generation_input
+
+
 
     def update(self, x, x_):
         ''' update the pointnet, including 3 models '''
@@ -198,7 +227,7 @@ def plot(x):
     clear_output(True)
     plt.figure(figsize=(20,5))
     plt.plot(x)
-    plt.savefig('pointnet.png')
+    plt.savefig('transporter.png')
     # plt.show()
 
 
@@ -206,7 +235,7 @@ img_dim=128
 img_channel=3
 num_landmarks=5
 heatmap_size=16  # width and height of heatmap
-pointnet = PointNet(img_dim, img_channel, num_landmarks, heatmap_size)
+pointnet = Transporter(img_dim, img_channel, num_landmarks, heatmap_size)
 total_data=1024
 batch_data=256  # size of pickle batch
 num_epochs=1000
@@ -267,9 +296,9 @@ if args.test:
 
     plt.figure(figsize=(img_dim/my_dpi, img_dim/my_dpi), dpi=my_dpi) # plot image with exact pixels
     plt.imshow(target_samples[idx])
-    plt.savefig('./pointnet_data/'+'target.png')
+    plt.savefig('./transporter_model/'+'target.png')
     plt.imshow(source_samples[idx])
-    plt.savefig('./pointnet_data/'+'original.png')
+    plt.savefig('./transporter_model/'+'original.png')
     source_sample=torch.Tensor(source_sample).unsqueeze(0).to(device)
     target_sample=torch.Tensor(target_sample).unsqueeze(0).to(device)
 
@@ -277,23 +306,18 @@ if args.test:
     xs=xs.detach().cpu().numpy()
     ys=ys.detach().cpu().numpy()
 
-    ''' 
-    Here I just map the landmark coordinates from heatmaps to input images, but I'm not sure how original paper works.
-    It seems a direct map does not make much sense as the landmark coordinates are in feature space, maybe get landmarks
-    coordinates on original images through the regressor (deconvolution)?
-    '''
-    
+    # here I just map the landmark coordinates from heatmaps to input images, but I'm not sure how original paper works.
     xs=xs*img_dim/heatmap_size
     ys=ys*img_dim/heatmap_size
 
     print(xs, ys)
     plt.scatter(xs, ys, c='r', s=40)  # plot landmarks on original image
-    plt.savefig('./pointnet_data/'+'landmark.png')
+    plt.savefig('./transporter_model/'+'landmark.png')
 
     generated_image=pointnet(source_sample, target_sample)  # generate image from source image to mimic the target image
     generated_image = np.transpose(generated_image.detach().cpu().numpy()[0], (1,2,0)) # (128, 128, 3)
     plt.imshow(generated_image)
-    plt.savefig('./pointnet_data/'+'generated.png')
+    plt.savefig('./transporter_model/'+'generated.png')
     # plt.show()
 
         
