@@ -425,7 +425,7 @@ for epi in range(max_episodes):
             predict_q=update(batch_size, reward_scale)
             # print('update')
 
-        if len(list_s)%batch_size==0:  # train the transporter during RL training
+        if len(list_s)%batch_size==0 and len(list_s)>0:  # train the transporter during RL training
             source_batch=torch.Tensor(list_s).to(device)
             target_batch=torch.Tensor(list_s_).to(device)
             trans_loss = transporter.update(source_batch, target_batch)

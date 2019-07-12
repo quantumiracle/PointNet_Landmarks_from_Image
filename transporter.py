@@ -38,7 +38,7 @@ print(device)
 
 
 class Transporter(nn.Module):
-    def __init__(self, img_dim, img_channel, num_landmarks, heatmap_size, gaussian_std=2., learning_rate= 6e-4, weight_decay=5e-4):  # square image, width=height=img_dim
+    def __init__(self, img_dim, img_channel, num_landmarks, heatmap_size, gaussian_std=2., learning_rate= 6e-3, weight_decay=5e-4):  # square image, width=height=img_dim
         super(Transporter, self).__init__()
         self.CONV_NUM_FEATURE_MAP=32
         self.CONV_KERNEL_SIZE=4
@@ -142,6 +142,7 @@ class Transporter(nn.Module):
         :h_t: heatmaps of target images
         :return: inputs for generation with regressor
         '''
+        # print(h_s, h_t, f_s, f_t)
         generation_input=(1-h_s)*(1-h_t)*f_s+h_t*f_t  # element-wise product
 
         return generation_input
@@ -168,6 +169,16 @@ class Transporter(nn.Module):
 
         return landmarks_col, landmarks_row
 
+    def compress_state(self, x):
+        ''' generate landmarks (compressed state representation) from image observation during RL interaction '''
+        x=torch.Tensor(x).unsqueeze(0).to(device)
+        heatmaps=self.generate_heatmaps(x)  # (1, 5, 16, 16)
+        landmarks_col, landmarks_row=self.condense(heatmaps)  # (1, 5, 1)
+
+        compressed_state=torch.cat((landmarks_col, landmarks_row)).detach().cpu().numpy().reshape(-1)
+
+        return compressed_state
+
 
     def generate_heatmaps(self, x):
         ''' step 1 '''
@@ -185,8 +196,8 @@ class Transporter(nn.Module):
         softmax=torch.nn.Softmax(dim=-1) 
         prob_col=softmax(col)
         prob_row=softmax(row)
-        col_grid=torch.linspace(0, self.HEATMAP_SIZE-1, self.HEATMAP_SIZE).unsqueeze(1)
-        row_grid=torch.linspace(0, self.HEATMAP_SIZE-1, self.HEATMAP_SIZE).unsqueeze(1)
+        col_grid=torch.linspace(0, self.HEATMAP_SIZE-1, self.HEATMAP_SIZE).unsqueeze(1).to(device)
+        row_grid=torch.linspace(0, self.HEATMAP_SIZE-1, self.HEATMAP_SIZE).unsqueeze(1).to(device)
         landmarks_col=torch.matmul(prob_col, col_grid)
         landmarks_row=torch.matmul(prob_row, row_grid) 
 
@@ -210,7 +221,7 @@ class Transporter(nn.Module):
             heatmap_list=torch.stack(heatmap_list)  # transfer list to torch tensor
             heatmap_batch.append(heatmap_list)
 
-        return torch.stack(heatmap_batch)
+        return torch.stack(heatmap_batch).to(device)
 
     def save_model(self):
         torch.save(self.landmark_detector.state_dict(), save_path+'landmark_detector.pth')
@@ -288,7 +299,7 @@ if args.test:
     source_samples=pickle.load(f1) # image value 0-1, size:(128,128,3)
     target_samples=pickle.load(f2)
 
-    idx=18
+    idx=4
     my_dpi=96  # tested at: https://www.infobyip.com/detectmonitordpi.php
     source_sample=np.transpose(source_samples[idx], (2,0,1))
     target_sample=np.transpose(target_samples[idx], (2,0,1))
@@ -305,11 +316,11 @@ if args.test:
     xs=xs.detach().cpu().numpy()
     ys=ys.detach().cpu().numpy()
 
-    # here I just map the landmark coordinates from heatmaps to input images, but I'm not sure how original paper works.
+    # Here I just map the landmark coordinates from heatmaps to input images, but I'm not sure how original paper works.
     xs=xs*img_dim/heatmap_size
     ys=ys*img_dim/heatmap_size
 
-    print(xs, ys)
+    # print(xs, ys)
     plt.scatter(xs, ys, marker="^", c='r', s=6)  # plot landmarks on original image
     plt.savefig('./transporter_model/'+'landmark.png')
 

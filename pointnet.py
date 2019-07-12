@@ -156,8 +156,8 @@ class PointNet(nn.Module):
         softmax=torch.nn.Softmax(dim=-1) 
         prob_col=softmax(col)
         prob_row=softmax(row)
-        col_grid=torch.linspace(0, self.HEATMAP_SIZE-1, self.HEATMAP_SIZE).unsqueeze(1)
-        row_grid=torch.linspace(0, self.HEATMAP_SIZE-1, self.HEATMAP_SIZE).unsqueeze(1)
+        col_grid=torch.linspace(0, self.HEATMAP_SIZE-1, self.HEATMAP_SIZE).unsqueeze(1).to(device)
+        row_grid=torch.linspace(0, self.HEATMAP_SIZE-1, self.HEATMAP_SIZE).unsqueeze(1).to(device)
         landmarks_col=torch.matmul(prob_col, col_grid)
         landmarks_row=torch.matmul(prob_row, row_grid) 
 
@@ -181,7 +181,7 @@ class PointNet(nn.Module):
             heatmap_list=torch.stack(heatmap_list)  # transfer list to torch tensor
             heatmap_batch.append(heatmap_list)
 
-        return torch.stack(heatmap_batch)
+        return torch.stack(heatmap_batch).to(device)
 
     def save_model(self):
         torch.save(self.landmark_detector.state_dict(), save_path+'landmark_detector.pth')
