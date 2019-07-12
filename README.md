@@ -22,6 +22,26 @@ On the test dateset with screenshot of Reacher environment.
 
 * **PointNet**
 
+Source image:
+<p align="center">
+<img src="https://github.com/quantumiracle/PointNet_Landmarks_from_Image/blob/master/image_pointnet/original.png" width="20%">
+  
+Source iamge with landmarks (red rectangles):
+<p align="center">
+<img src="https://github.com/quantumiracle/PointNet_Landmarks_from_Image/blob/master/image_pointnet/landmark.png" width="20%">
+
+
+Target image:
+<p align="center">
+<img src="https://github.com/quantumiracle/PointNet_Landmarks_from_Image/blob/master/image_pointnet/target.png" width="20%">
+
+
+Generated target image with landmarks (same as on source image):
+
+<p align="center">
+<img src="https://github.com/quantumiracle/PointNet_Landmarks_from_Image/blob/master/image_pointnet/generated.png" width="20%">
+
+
 
 * **Transporter:**
 
@@ -45,3 +65,17 @@ Generated target image with landmarks (same as on source image):
 <img src="https://github.com/quantumiracle/PointNet_Landmarks_from_Image/blob/master/image/generated.png" width="20%">
 
 
+* **Transporter for RL**:
+
+Some RL training curves with Transporter:
+
+<p align="center">
+<img src="https://github.com/quantumiracle/PointNet_Landmarks_from_Image/blob/master/image_transporter_rl/transporter_sac_keeptraining.png" width="20%">
+  
+  <p align="center">
+<img src="https://github.com/quantumiracle/PointNet_Landmarks_from_Image/blob/master/image_transporter_rl/transporter_sac_notraining.png" width="20%">
+  
+  <p align="center">
+<img src="https://github.com/quantumiracle/PointNet_Landmarks_from_Image/blob/master/image_transporter_rl/transporter_sac_notraining2.png" width="20%">
+
+Experiments show that, with the landmarks extraced from the pre-trained Transporter as observation, RL algorithms like SAC can  learn a relatively good policy (near optimal, but shaking around it) very quickly, but not the optimal policy. However, as the landmark positions from the Transporter are not very accurately describing the structure of the agent (e.g. joints of the 'reacher'), it cannot learn a very good policy in the end no matter the Transporter is keep being trained or not during the RL learning process.
