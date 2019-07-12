@@ -38,7 +38,7 @@ print(device)
 
 
 class Transporter(nn.Module):
-    def __init__(self, img_dim, img_channel, num_landmarks, heatmap_size, gaussian_std=2., learning_rate= 6e-3, weight_decay=5e-4):  # square image, width=height=img_dim
+    def __init__(self, img_dim, img_channel, num_landmarks, heatmap_size, gaussian_std=2., learning_rate= 2e-3, weight_decay=5e-4):  # square image, width=height=img_dim
         super(Transporter, self).__init__()
         self.CONV_NUM_FEATURE_MAP=32
         self.CONV_KERNEL_SIZE=4
@@ -299,7 +299,7 @@ if args.test:
     source_samples=pickle.load(f1) # image value 0-1, size:(128,128,3)
     target_samples=pickle.load(f2)
 
-    idx=4
+    idx=18  # test sample index
     my_dpi=96  # tested at: https://www.infobyip.com/detectmonitordpi.php
     source_sample=np.transpose(source_samples[idx], (2,0,1))
     target_sample=np.transpose(target_samples[idx], (2,0,1))
@@ -321,7 +321,10 @@ if args.test:
     ys=ys*img_dim/heatmap_size
 
     # print(xs, ys)
-    plt.scatter(xs, ys, marker="^", c='r', s=6)  # plot landmarks on original image
+    ''' here is a critical point: the plt.scatter() has an opposite x,y order compared with plt.imshow(),
+    therefore here use the plt.scatter() in an opposite order to match the above.
+    '''
+    plt.scatter(ys, xs, marker="^", c='r', s=6)  # plot landmarks on original image
     plt.savefig('./transporter_model/'+'landmark.png')
 
     generated_image=transporter(source_sample, target_sample)  # generate image from source image to mimic the target image
