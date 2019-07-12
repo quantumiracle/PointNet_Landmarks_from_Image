@@ -22,6 +22,26 @@ On the test dateset with screenshot of Reacher environment.
 
 * **PointNet**
 
+Source image:
+<p align="center">
+<img src="https://github.com/quantumiracle/PointNet_Landmarks_from_Image/blob/master/image_pointnet/original.png" width="20%">
+  
+Source iamge with landmarks (red rectangles):
+<p align="center">
+<img src="https://github.com/quantumiracle/PointNet_Landmarks_from_Image/blob/master/image_pointnet/landmark.png" width="20%">
+
+
+Target image:
+<p align="center">
+<img src="https://github.com/quantumiracle/PointNet_Landmarks_from_Image/blob/master/image_pointnet/target.png" width="20%">
+
+
+Generated target image with landmarks (same as on source image):
+
+<p align="center">
+<img src="https://github.com/quantumiracle/PointNet_Landmarks_from_Image/blob/master/image_pointnet/generated.png" width="20%">
+
+
 
 * **Transporter:**
 
